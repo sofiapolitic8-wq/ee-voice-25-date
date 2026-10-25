@@ -1,0 +1,52 @@
+CuteVoice v4 Pro - KYA THIK KIYA / KYA ADD KIYA          (purana UI same + neeche naya 'Pro Controls' panel)
+
+1) HEAR ON/OFF GLITCH - THIK
+   - Headphone stream pehle hamesha chalta rehta tha; ab Hear ON par ek stream khulta hai, OFF par band hota hai.
+   - Hear toggle ab Tk window ko freeze nahi karta: stream khulna/band hona chhote worker thread mein hota hai,
+     result Tk thread pe wapas aata hai. Jab tak pehla request chal raha ho, extra click ignore hota hai
+     (do request kabhi overlap nahi hote).
+   - Monitor device cable wala ho ya select na ho to pehle chup-chap kuch nahi hota tha; ab warning aati hai, Hear OFF rehta hai.
+   - Purani buffer wali awaaz dobara ON karne par bajti thi (echo/glitch); ab buffer sahi order mein saaf hota hai.
+   - STOP par pehle worker thread band hota hai, phir streams (abort() - rukta nahi), phir buffers: ghost thread nahi bachta.
+   - Start/stop/monitor ek lock se chalte hain; double START par doosra stream set nahi khulta.
+   - Monitor start fail ho to START poora fail nahi hota; Hear OFF ho jata hai aur message milta hai.
+
+2) PEDALBOARD CHAIN (engine.py)
+   NoiseGate > Low Cut > Compressor (-20 dB, 4:1 default) > PitchShift > Chorus > Vibrato > LowShelf 150 Hz
+   > Presence 2.5 kHz > HighShelf 3 kHz > Reverb > smooth Volume > Limiter
+
+3) SLIDERS LIVE (app.py ke maujooda sliders, naya slider nahi)
+   Pitch -> PitchShift | Vocal thickness -> Chorus mix/depth + thoda bass | Persona/Mix -> extra pitch
+   Bass -> LowShelf 150 Hz gain | Treble/Air -> HighShelf 3 kHz gain | Mid/Presence -> 2.5 kHz
+   Timbre -> bass/treble tilt | Compressor Threshold/Ratio -> Compressor | Noise Gate, Low Cut, Reverb, Volume.
+   Har value ~60 ms mein smooth glide karti hai (slider hilane par click/zipper nahi).
+   Gehri awaaz (pitch neeche) par HighShelf mein khud +4 dB tak (awaaz dabi na lage).
+
+3b) NAYA 'PRO CONTROLS' PANEL (UI mein neeche, '>' button se khulta hai; shuru mein band)
+   Tone:     Bass Frequency (LowShelf 80-300 Hz), Treble Frequency (HighShelf 1.5-8 kHz),
+             Presence Frequency, Auto Clarity
+   Effects:  Chorus Mix / Depth / Speed,  Vibrato Depth / Speed
+   Dynamics: Compressor Attack / Release, Reverb Size, Limiter Ceiling
+   Sab chalte audio mein live badalta hai. Double-click = default.
+
+4) EXTRA
+   - winperf.py (fallback, aapki original jaisa: priority, 1 ms timer, no-throttle, awake). Original ho to replace kar do.
+   - BUILD_EXE.bat: scipy hataya, pedalboard joda.   - selftest.py: GitHub par exe se pehle chain ka test.
+
+NOTE
+   - Timbre = bass/treble tilt (pedalboard mein formant shift nahi hota).
+   - PitchShift ka apna delay hai -> total delay pehle se zyada; kam chahiye to "Fast" buffer chuno.
+   - Vibrato/Chorus ki awaaz kaan se tune karni padegi; Vibrato ke liye 8 ms extra delay chain mein hai.
+
+----------------------------------------------------------------------
+V4.1 FIXES (Hear / monitor / Voice OUT)
+1) Hear ON/OFF race: har request ko sequence number milta hai; STOP ya naya request aane par purani
+   (lock ka intezaar karti) request kuch nahi karti. App mein bhi START/STOP par generation badalta hai,
+   purani request ka result ignore hota hai. Rapid toggle + STOP ke baad koi stream/thread active nahi rehta.
+2) OFF ke baad buffered audio: monitor ring ab "inactive" ho jati hai - chalta hua callback bhi turant
+   silence leta hai, buffer fenk diya jata hai, write ignore hoti hai. Dobara ON par purani awaaz nahi bajti.
+3) START par monitor state: monitor_enabled ab tabhi True hota hai jab headphone stream sach mein khul jaye
+   (Router.start(..., monitor=True)). Fail hone par OFF + message; button asli state dikhata hai.
+4) Galat Voice OUT: Voice OUT sirf virtual cable (CABLE Input / VB-Audio / VoiceMeeter) ho sakta hai.
+   Asli speaker/headphone chunne par START refuse (auto-start par bhi), list mein sirf cable devices aati
+   hain, aur Monitor list mein cable devices nahi aate.
